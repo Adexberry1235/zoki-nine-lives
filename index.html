@@ -2,112 +2,128 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>ZOKI: Nine Lives Run</title>
-  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
     :root {
-      --bg: #050507;
-      --surface: #0e0e12;
-      --surface-2: #16161d;
-      --border: #262632;
+      --bg: #050508;
+      --surface: #0d0d13;
+      --surface-2: #161620;
+      --border: rgba(255, 255, 255, 0.12);
       --gold: #f5b700;
-      --gold-hi: #ffd84d;
-      --text: #f5f5f7;
-      --muted: #9898a6;
-      --danger: #ff4757;
-      --ok: #2ed573;
+      --gold-hi: #ffe066;
+      --text: #f7f7fb;
+      --muted: #9b9bae;
+      --danger: #ff3b5c;
+      --ok: #25d366;
     }
 
     * {
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
 
-    body {
+    html, body {
       margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(245, 183, 0, 0.11), transparent 45%),
-        var(--bg);
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
       color: var(--text);
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 14px;
     }
 
     .app {
+      position: relative;
       width: 100%;
-      max-width: 820px;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      gap: 10px;
     }
 
-    header {
+    /* Top HUD */
+    .hud {
+      position: relative;
+      z-index: 15;
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-    }
-
-    .title-group {
-      display: flex;
-      align-items: baseline;
       gap: 8px;
+      padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+      background: linear-gradient(180deg, rgba(5, 5, 9, 0.96), rgba(5, 5, 9, 0.78));
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
-    .title-group h1 {
-      margin: 0;
-      font-size: 1.08rem;
-      font-weight: 800;
-      letter-spacing: 0.6px;
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.12;
+      min-width: 0;
+    }
+
+    .brand strong {
+      font-size: 0.9rem;
       color: var(--gold);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
     }
 
-    .title-group span {
-      font-size: 0.74rem;
+    .brand small {
+      font-size: 0.65rem;
       color: var(--muted);
-      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .wallet-controls {
+    .stats {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      font-variant-numeric: tabular-nums;
     }
 
-    .wallet-pill {
-      font-size: 0.78rem;
-      color: var(--text);
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    .stat {
+      text-align: center;
+    }
+
+    .stat span {
+      display: block;
+      font-size: 0.56rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+    }
+
+    .stat b {
+      font-size: 0.88rem;
+      color: var(--gold-hi);
+    }
+
+    .hud-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     button {
       font-family: inherit;
       border: none;
       border-radius: 8px;
-      padding: 8px 14px;
+      padding: 7px 11px;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       cursor: pointer;
-      transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.08s ease, opacity 0.15s ease;
     }
 
     button:active:not(:disabled) {
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
 
     button:disabled {
@@ -117,772 +133,1344 @@
 
     .btn-gold {
       background: linear-gradient(180deg, var(--gold-hi), var(--gold));
-      color: #09090b;
+      color: #09090c;
     }
 
-    .btn-ghost {
-      background: var(--surface-2);
+    .btn-dark {
+      background: rgba(255, 255, 255, 0.08);
       color: var(--text);
       border: 1px solid var(--border);
     }
 
-    .hud {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+    .btn-link {
+      background: rgba(245, 183, 0, 0.14);
+      color: var(--gold-hi);
+      border: 1px solid rgba(245, 183, 0, 0.4);
     }
 
-    @media (max-width: 560px) {
-      .hud { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-    }
-
-    .card .label {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--muted);
-    }
-
-    .card .value {
-      margin-top: 2px;
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--gold);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .power-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-    }
-
-    .power-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.74rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    .power-track {
-      height: 10px;
-      background: #1a1a22;
-      border-radius: 999px;
-      overflow: hidden;
+    /* Power Core Bar */
+    .power-bar {
+      position: relative;
+      z-index: 15;
+      height: 6px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.07);
+      flex-shrink: 0;
     }
 
     .power-fill {
       height: 100%;
       width: 100%;
-      background: linear-gradient(90deg, #c98a00, var(--gold-hi));
+      background: linear-gradient(90deg, #ff7b00, var(--gold), var(--gold-hi));
       transition: width 0.06s linear;
     }
 
-    .stage {
+    /* Fullscreen Runner Viewport */
+    .stage-wrap {
       position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: #060609;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
-    }
-
-    canvas {
-      display: block;
+      flex: 1;
       width: 100%;
-      height: auto;
+      height: 100%;
+      overflow: hidden;
       touch-action: none;
     }
 
-    .modal {
+    canvas#runnerCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Splash & Revive Overlays */
+    .screen {
       position: absolute;
       inset: 0;
-      background: rgba(5, 5, 8, 0.88);
-      backdrop-filter: blur(4px);
+      z-index: 25;
+      background: radial-gradient(circle at 50% 24%, rgba(245, 183, 0, 0.14), rgba(5, 5, 9, 0.94) 68%);
+      backdrop-filter: blur(7px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 24px;
-      gap: 12px;
+      padding: 18px;
+      gap: 10px;
+      overflow-y: auto;
     }
 
-    .modal.hidden {
+    .screen.hidden {
       display: none;
     }
 
-    .modal h2 {
+    .splash-art {
+      width: min(290px, 76vw);
+      height: 154px;
+      border-radius: 16px;
+      border: 1px solid rgba(245, 183, 0, 0.35);
+      background: #07070c;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+    }
+
+    .screen h1, .screen h2 {
       margin: 0;
-      font-size: 1.55rem;
       color: var(--gold);
-      letter-spacing: 0.4px;
+      font-size: clamp(1.35rem, 4.5vw, 1.9rem);
+      letter-spacing: 0.6px;
     }
 
-    .modal p {
+    .tagline {
       margin: 0;
-      max-width: 460px;
-      font-size: 0.92rem;
-      line-height: 1.5;
-      color: #d6d6e0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--gold-hi);
+      text-transform: uppercase;
     }
 
-    .modal-actions {
+    .screen p {
+      margin: 0;
+      max-width: 430px;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: #dcdce6;
+    }
+
+    .loader-box {
+      width: min(280px, 74vw);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .loader-track {
+      height: 7px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .loader-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-hi));
+      transition: width 0.08s linear;
+    }
+
+    .loader-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .swipe-guide {
+      font-size: 0.74rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 10px;
+    }
+
+    .btn-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       margin-top: 4px;
     }
 
     .feedback {
       min-height: 1.2em;
-      font-size: 0.82rem;
+      max-width: 460px;
+      font-size: 0.78rem;
       font-weight: 600;
       color: var(--gold-hi);
-      max-width: 520px;
       word-break: break-word;
     }
 
-    footer {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 0.74rem;
+    .tiny-meta {
+      font-size: 0.66rem;
       color: var(--muted);
-      padding: 0 4px;
-    }
-
-    footer code {
-      color: #c8c8d4;
-      font-size: 0.72rem;
+      line-height: 1.35;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header>
-      <div class="title-group">
-        <h1>ZOKI: NINE LIVES</h1>
-        <span>NEVER BAD LUCK. ONLY EVER EARLY.</span>
+    <!-- HUD -->
+    <header class="hud">
+      <div class="brand">
+        <strong>ZOKI: NINE LIVES</strong>
+        <small id="walletHud">Robinhood Chain • Off</small>
       </div>
-      <div class="wallet-controls">
-        <span id="walletPill" class="wallet-pill">Wallet: Off</span>
+
+      <div class="stats">
+        <div class="stat"><span>Score</span><b id="hudScore">0</b></div>
+        <div class="stat"><span>Life</span><b id="hudLife">1/9</b></div>
+        <div class="stat"><span>₿ Orbs</span><b id="hudOrbs">0</b></div>
+        <div class="stat"><span>Best</span><b id="hudBest">0</b></div>
+      </div>
+
+      <div class="hud-btns">
         <button id="connectBtn" class="btn-gold">Connect</button>
-        <button id="soundBtn" class="btn-ghost" title="Toggle Sound">SFX: On</button>
+        <button id="sfxBtn" class="btn-dark">SFX: On</button>
       </div>
     </header>
 
-    <section class="hud">
-      <div class="card">
-        <div class="label">Score</div>
-        <div id="scoreText" class="value">0</div>
-      </div>
-      <div class="card">
-        <div class="label">Life</div>
-        <div id="lifeText" class="value">1 / 9</div>
-      </div>
-      <div class="card">
-        <div class="label">₿ Orbs</div>
-        <div id="orbText" class="value">0</div>
-      </div>
-      <div class="card">
-        <div class="label">Best</div>
-        <div id="bestText" class="value">0</div>
-      </div>
-    </section>
+    <!-- Power Core -->
+    <div class="power-bar"><div id="powerFill" class="power-fill"></div></div>
 
-    <section class="power-panel">
-      <div class="power-header">
-        <span>ZOKI POWER CORE</span>
-        <span id="powerPct">100%</span>
-      </div>
-      <div class="power-track">
-        <div id="powerFill" class="power-fill"></div>
-      </div>
-    </section>
+    <!-- Game Stage -->
+    <main id="stageWrap" class="stage-wrap">
+      <canvas id="runnerCanvas"></canvas>
 
-    <section class="stage">
-      <canvas id="game" width="820" height="380"></canvas>
+      <!-- Splash / Loading Screen -->
+      <section id="splashScreen" class="screen">
+        <canvas id="splashCanvas" class="splash-art" width="580" height="308"></canvas>
+        <div class="tagline">Never Bad Luck. Only Ever Early.</div>
+        <h1>ZOKI: NINE LIVES</h1>
+        <p>Sprint 3 rush lanes as Zoki. Jump barriers, roll under overhead beams, collect gold <strong>₿</strong> orbs, and revive across <strong>9 lives</strong> with <strong>$ZOKI</strong>.</p>
 
-      <div id="startModal" class="modal">
-        <h2>NINE LIVES AWAIT</h2>
-        <p>Tap, click, or press <strong>Space / ↑</strong> to jump over traps and collect gold <strong>₿</strong> energy orbs. When your power core drains or you hit a trap, spend <strong>$ZOKI</strong> to revive.</p>
-        <div class="modal-actions">
-          <button id="playBtn" class="btn-gold">Play Free (Life 1)</button>
+        <div id="loaderBox" class="loader-box">
+          <div class="loader-track"><div id="loaderFill" class="loader-fill"></div></div>
+          <div id="loaderLabel" class="loader-label">Booting Zoki engine... 0%</div>
         </div>
-      </div>
 
-      <div id="reviveModal" class="modal hidden">
-        <h2 id="reviveHeading">POWER DEPLETED</h2>
-        <p id="reviveCopy">Send <strong>500 $ZOKI</strong> to recharge Zoki's power core and enter <strong>Life 2 of 9</strong>.</p>
-        <div class="modal-actions">
-          <button id="reviveZokiBtn" class="btn-gold">Pay 500 $ZOKI to Revive</button>
-          <button id="testRefillBtn" class="btn-ghost">Test Refill</button>
-          <button id="newRunBtn" class="btn-ghost">New Run</button>
+        <div class="swipe-guide">
+          Swipe <strong>← / →</strong> Lanes &nbsp;•&nbsp; Swipe <strong>↑ / Tap</strong> Jump &nbsp;•&nbsp; Swipe <strong>↓</strong> Roll
         </div>
-        <div id="txFeedback" class="feedback"></div>
-      </div>
-    </section>
 
-    <footer>
-      <span>Token: <code>0x54A557dc542676f56CE2B1B5807Cc76BEdca308a</code></span>
-      <span>Revive Fee: <strong>500 $ZOKI</strong></span>
-    </footer>
+        <div class="btn-row">
+          <button id="startGameBtn" class="btn-gold" disabled>Loading...</button>
+          <a href="https://zoki.fun/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+            <button type="button" class="btn-link">Buy $ZOKI (zoki.fun)</button>
+          </a>
+        </div>
+
+        <div class="tiny-meta">
+          Robinhood Chain (4663) • $ZOKI: 0x54A557dc542676f56CE2B1B5807Cc76BEdca308a • Revive: 500 $ZOKI
+        </div>
+      </section>
+
+      <!-- Wipeout / Revive Screen -->
+      <section id="reviveScreen" class="screen hidden">
+        <h2 id="reviveTitle">WIPEOUT!</h2>
+        <p id="reviveDesc">Spend <strong>500 $ZOKI</strong> to refill power and enter <strong>Life 2 of 9</strong>.</p>
+
+        <div class="btn-row">
+          <button id="payReviveBtn" class="btn-gold">Pay 500 $ZOKI</button>
+          <button id="recheckBtn" class="btn-dark">Check $ZOKI Balance</button>
+          <button id="openMmBtn" class="btn-dark hidden">Open MetaMask</button>
+        </div>
+
+        <div class="btn-row">
+          <a href="https://zoki.fun/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+            <button type="button" class="btn-link">Buy $ZOKI on zoki.fun</button>
+          </a>
+          <button id="testReviveBtn" class="btn-dark">Test Refill</button>
+          <button id="freshRunBtn" class="btn-dark">New Run</button>
+        </div>
+
+        <div id="reviveFeedback" class="feedback"></div>
+        <div class="tiny-meta">Treasury: 0x07A1d1dF91335F71DE4c76cBeec97A1eF04310ad</div>
+      </section>
+    </main>
   </div>
 
   <script>
-    const CONFIG = {
+    // =========================================================================
+    // CONFIGURATION (Robinhood Chain Arbitrum L2 + $ZOKI + Treasury + zoki.fun)
+    // =========================================================================
+    const CFG = {
+      chainIdDec: 4663,
+      chainIdHex: "0x1237", // 4663 in hex
+      chainName: "Robinhood Chain",
+      rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"],
+      blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
       tokenAddress: "0x54A557dc542676f56CE2B1B5807Cc76BEdca308a",
-      treasuryAddress: "0x000000000000000000000000000000000000dEaD",
-      reviveAmountTokens: "500",
+      treasuryAddress: "0x07A1d1dF91335F71DE4c76cBeec97A1eF04310ad",
+      buyUrl: "https://zoki.fun/",
+      reviveAmount: "500",
       maxLives: 9
     };
 
-    const ERC20_ABI = [
-      "function transfer(address to, uint256 amount) returns (bool)",
-      "function decimals() view returns (uint8)"
-    ];
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER (Zero-latency sound effects, no external MP3s)
+    // =========================================================================
+    const SFX = {
+      enabled: true,
+      ctx: null,
+      streak: 0,
 
-    let soundEnabled = true;
-    let audioCtx = null;
-
-    function playTone(freq, duration, type = "sine", gainVal = 0.07) {
-      if (!soundEnabled) return;
-      try {
-        if (!audioCtx) {
-          const Ctx = window.AudioContext || window.webkitAudioContext;
-          if (Ctx) audioCtx = new Ctx();
+      ensure() {
+        if (!this.enabled) return null;
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          if (!this.ctx) this.ctx = new AC();
+          if (this.ctx.state === "suspended") this.ctx.resume();
+          return this.ctx;
+        } catch (_) {
+          return null;
         }
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+      },
+
+      tone(freqStart, freqEnd, dur, type = "sine", vol = 0.065, delay = 0) {
+        const ctx = this.ensure();
+        if (!ctx) return;
+        const now = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.frequency.setValueAtTime(freqStart, now);
+        if (freqEnd !== null) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(30, freqEnd), now + dur);
+        }
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur + 0.02);
+      },
+
+      noise(dur, filterFreq, vol = 0.045) {
+        const ctx = this.ensure();
+        if (!ctx) return;
+        const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = filterFreq;
+        filter.Q.value = 1.6;
+
+        const gain = ctx.createGain();
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(now);
+        src.stop(now + dur + 0.01);
+      },
+
+      laneSwitch() {
+        this.noise(0.065, 950, 0.04);
+        this.tone(310, 440, 0.06, "triangle", 0.04);
+      },
+
+      jump() {
+        this.noise(0.07, 1400, 0.03);
+        this.tone(260, 640, 0.13, "triangle", 0.065);
+      },
+
+      roll() {
+        this.noise(0.11, 520, 0.055);
+        this.tone(240, 130, 0.1, "sawtooth", 0.035);
+      },
+
+      orb() {
+        this.streak = Math.min(8, this.streak + 1);
+        const pitchBoost = 1 + this.streak * 0.05;
+        this.tone(880 * pitchBoost, 1175 * pitchBoost, 0.09, "sine", 0.065, 0);
+        this.tone(1320 * pitchBoost, 1760 * pitchBoost, 0.11, "triangle", 0.045, 0.03);
+      },
+
+      wipeout() {
+        this.tone(150, 46, 0.28, "sawtooth", 0.085, 0);
+        this.noise(0.16, 260, 0.07);
+      },
+
+      revive() {
+        this.streak = 0;
+        this.tone(523.25, null, 0.14, "triangle", 0.07, 0);
+        this.tone(659.25, null, 0.14, "triangle", 0.07, 0.08);
+        this.tone(783.99, 1046.5, 0.24, "sine", 0.08, 0.16);
+      }
+    };
+
+    // =========================================================================
+    // ROBINHOOD CHAIN & $ZOKI ERC-20 WALLET LAYER (Direct EIP-1193 RPC)
+    // =========================================================================
+    let account = null;
+    let tokenDecimals = 18;
+
+    function pad32(hexWithoutPrefix) {
+      return hexWithoutPrefix.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+    }
+
+    function parseUnitsBigInt(amountStr, decimals) {
+      const [intPart, fracPart = ""] = String(amountStr).trim().split(".");
+      const fracClean = (fracPart + "0".repeat(decimals)).slice(0, decimals);
+      return BigInt(intPart || "0") * (10n ** BigInt(decimals)) + BigInt(fracClean || "0");
+    }
+
+    function formatUnitsDisplay(rawBigInt, decimals) {
+      const base = 10n ** BigInt(decimals);
+      const whole = rawBigInt / base;
+      const rem = rawBigInt % base;
+      if (rem === 0n) return whole.toString();
+      const fracStr = rem.toString().padStart(decimals, "0").slice(0, 2).replace(/0+$/, "");
+      return fracStr ? `${whole.toString()}.${fracStr}` : whole.toString();
+    }
+
+    function encodeBalanceOf(owner) {
+      // balanceOf(address) = 0x70a08231
+      return "0x70a08231" + pad32(owner);
+    }
+
+    function encodeDecimals() {
+      // decimals() = 0x313ce567
+      return "0x313ce567";
+    }
+
+    function encodeTransfer(to, amountBigInt) {
+      // transfer(address,uint256) = 0xa9059cbb
+      return "0xa9059cbb" + pad32(to) + pad32(amountBigInt.toString(16));
+    }
+
+    const walletHud = document.getElementById("walletHud");
+    const reviveFeedback = document.getElementById("reviveFeedback");
+    const openMmBtn = document.getElementById("openMmBtn");
+
+    function refreshWalletStatus() {
+      const dappTarget = location.href.replace(/^https?:\/\//, "");
+      if (!window.ethereum) {
+        openMmBtn.classList.remove("hidden");
+        openMmBtn.onclick = () => {
+          location.href = `https://metamask.app.link/dapp/${dappTarget}`;
+        };
+      } else {
+        openMmBtn.classList.add("hidden");
+      }
+
+      if (account) {
+        walletHud.textContent = `Robinhood • ${account.slice(0, 6)}...${account.slice(-4)}`;
+      } else {
+        walletHud.textContent = window.ethereum ? "Robinhood • Ready" : "Robinhood • Off";
+      }
+    }
+
+    async function ensureRobinhoodChain() {
+      if (!window.ethereum) return false;
+      const currentChain = await window.ethereum.request({ method: "eth_chainId" });
+      if (String(currentChain).toLowerCase() === CFG.chainIdHex.toLowerCase()) {
+        return true;
+      }
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CFG.chainIdHex }]
+        });
+        return true;
+      } catch (switchErr) {
+        if (switchErr && switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: CFG.chainIdHex,
+              chainName: CFG.chainName,
+              rpcUrls: CFG.rpcUrls,
+              blockExplorerUrls: CFG.blockExplorerUrls,
+              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 }
+            }]
+          });
+          return true;
+        }
+        throw switchErr;
+      }
+    }
+
+    async function loadDecimalsSafe() {
+      try {
+        const res = await window.ethereum.request({
+          method: "eth_call",
+          params: [{ to: CFG.tokenAddress, data: encodeDecimals() }, "latest"]
+        });
+        if (res && res !== "0x") {
+          const parsed = Number(BigInt(res));
+          if (parsed >= 0 && parsed <= 36) tokenDecimals = parsed;
+        }
       } catch (_) {}
     }
 
-    const canvas = document.getElementById("game");
+    async function getZokiBalanceBigInt(addr) {
+      const res = await window.ethereum.request({
+        method: "eth_call",
+        params: [{ to: CFG.tokenAddress, data: encodeBalanceOf(addr) }, "latest"]
+      });
+      return res && res !== "0x" ? BigInt(res) : 0n;
+    }
+
+    async function connectMetaMask() {
+      refreshWalletStatus();
+      if (!window.ethereum) {
+        reviveFeedback.textContent = "No injected wallet detected. Tap 'Open MetaMask' or open this page inside MetaMask.";
+        return null;
+      }
+      try {
+        reviveFeedback.textContent = "Connecting MetaMask...";
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        if (!accounts || !accounts.length) {
+          reviveFeedback.textContent = "No account returned.";
+          return null;
+        }
+        account = accounts[0];
+        await ensureRobinhoodChain();
+        await loadDecimalsSafe();
+        refreshWalletStatus();
+
+        const bal = await getZokiBalanceBigInt(account);
+        reviveFeedback.textContent = `Connected • Balance: ${formatUnitsDisplay(bal, tokenDecimals)} $ZOKI`;
+        return account;
+      } catch (err) {
+        reviveFeedback.textContent = err?.message || "Wallet connection cancelled.";
+        return null;
+      }
+    }
+
+    async function checkBalanceOnly() {
+      const addr = account || await connectMetaMask();
+      if (!addr) return;
+      try {
+        await ensureRobinhoodChain();
+        await loadDecimalsSafe();
+        const bal = await getZokiBalanceBigInt(addr);
+        const need = parseUnitsBigInt(CFG.reviveAmount, tokenDecimals);
+        const human = formatUnitsDisplay(bal, tokenDecimals);
+        if (bal >= need) {
+          reviveFeedback.textContent = `You have ${human} $ZOKI — enough for revive! Tap 'Pay 500 $ZOKI'.`;
+        } else {
+          reviveFeedback.textContent = `Balance: ${human} $ZOKI (need ${CFG.reviveAmount} $ZOKI). Tap 'Buy $ZOKI on zoki.fun'.`;
+        }
+      } catch (err) {
+        reviveFeedback.textContent = err?.message || "Could not read $ZOKI balance.";
+      }
+    }
+
+    async function payZokiRevive() {
+      if (state.life >= CFG.maxLives) return;
+      const addr = account || await connectMetaMask();
+      if (!addr) return;
+
+      const payBtn = document.getElementById("payReviveBtn");
+      try {
+        payBtn.disabled = true;
+        await ensureRobinhoodChain();
+        await loadDecimalsSafe();
+
+        const needBig = parseUnitsBigInt(CFG.reviveAmount, tokenDecimals);
+        const balBig = await getZokiBalanceBigInt(addr);
+
+        if (balBig < needBig) {
+          const human = formatUnitsDisplay(balBig, tokenDecimals);
+          reviveFeedback.textContent = `Insufficient $ZOKI (${human} / ${CFG.reviveAmount}). Use 'Buy $ZOKI on zoki.fun' then Recheck.`;
+          payBtn.disabled = false;
+          return;
+        }
+
+        reviveFeedback.textContent = `Confirm ${CFG.reviveAmount} $ZOKI transfer in MetaMask...`;
+        const data = encodeTransfer(CFG.treasuryAddress, needBig);
+        const txHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: addr,
+            to: CFG.tokenAddress,
+            data,
+            value: "0x0"
+          }]
+        });
+
+        reviveFeedback.textContent = `Sent (${String(txHash).slice(0, 12)}...). Restoring Zoki...`;
+        setTimeout(() => {
+          completeRevive();
+          payBtn.disabled = false;
+        }, 750);
+      } catch (err) {
+        reviveFeedback.textContent = err?.message || "Transfer cancelled or failed.";
+        payBtn.disabled = false;
+      }
+    }
+
+    // =========================================================================
+    // SPLASH ARTWORK (Zoki + Subtle Satoshi Silhouette & ₿ Grid)
+    // =========================================================================
+    const splashCanvas = document.getElementById("splashCanvas");
+    const sctx = splashCanvas.getContext("2d");
+    let splashTick = 0;
+
+    function drawSplashArt() {
+      splashTick++;
+      const sw = splashCanvas.width;
+      const sh = splashCanvas.height;
+
+      const bg = sctx.createLinearGradient(0, 0, sw, sh);
+      bg.addColorStop(0, "#07070e");
+      bg.addColorStop(0.55, "#141008");
+      bg.addColorStop(1, "#080811");
+      sctx.fillStyle = bg;
+      sctx.fillRect(0, 0, sw, sh);
+
+      // Subtle ₿ grid lines
+      sctx.strokeStyle = "rgba(245, 183, 0, 0.11)";
+      sctx.lineWidth = 1;
+      for (let gx = 0; gx < sw; gx += 38) {
+        sctx.beginPath();
+        sctx.moveTo(gx, 0);
+        sctx.lineTo(gx, sh);
+        sctx.stroke();
+      }
+      for (let gy = 0; gy < sh; gy += 38) {
+        sctx.beginPath();
+        sctx.moveTo(0, gy);
+        sctx.lineTo(sw, gy);
+        sctx.stroke();
+      }
+
+      // Subtle hooded Satoshi-inspired silhouette on left-back
+      sctx.save();
+      sctx.fillStyle = "rgba(255, 224, 102, 0.08)";
+      sctx.beginPath();
+      sctx.arc(145, 132, 54, Math.PI * 0.95, Math.PI * 2.05);
+      sctx.lineTo(208, 285);
+      sctx.lineTo(82, 285);
+      sctx.closePath();
+      sctx.fill();
+
+      sctx.fillStyle = "rgba(245, 183, 0, 0.18)";
+      sctx.font = "bold 46px sans-serif";
+      sctx.textAlign = "center";
+      sctx.fillText("₿", 145, 165);
+      sctx.restore();
+
+      // Hero Zoki portrait on right/center-right
+      const bob = Math.sin(splashTick * 0.06) * 5;
+      const cx = 395;
+      const cy = 166 + bob;
+
+      sctx.save();
+      sctx.translate(cx, cy);
+
+      // Golden rim glow
+      const glow = sctx.createRadialGradient(0, -10, 12, 0, -10, 105);
+      glow.addColorStop(0, "rgba(255, 224, 102, 0.24)");
+      glow.addColorStop(1, "rgba(255, 224, 102, 0)");
+      sctx.fillStyle = glow;
+      sctx.beginPath();
+      sctx.arc(0, -10, 105, 0, Math.PI * 2);
+      sctx.fill();
+
+      // Shoulders / body
+      sctx.fillStyle = "#111118";
+      sctx.strokeStyle = "#f5b700";
+      sctx.lineWidth = 2.5;
+      sctx.beginPath();
+      sctx.roundRect(-58, 22, 116, 115, 34);
+      sctx.fill();
+      sctx.stroke();
+
+      // Head
+      sctx.beginPath();
+      sctx.roundRect(-50, -56, 100, 88, 34);
+      sctx.fill();
+      sctx.stroke();
+
+      // Ears
+      const drawBigEar = (lx, tx, rx) => {
+        sctx.fillStyle = "#111118";
+        sctx.strokeStyle = "#f5b700";
+        sctx.lineWidth = 2.4;
+        sctx.beginPath();
+        sctx.moveTo(lx, -42);
+        sctx.lineTo(tx, -92);
+        sctx.lineTo(rx, -42);
+        sctx.closePath();
+        sctx.fill();
+        sctx.stroke();
+
+        sctx.fillStyle = "#6e424e";
+        sctx.beginPath();
+        sctx.moveTo(lx + 8, -46);
+        sctx.lineTo(tx, -78);
+        sctx.lineTo(rx - 8, -46);
+        sctx.closePath();
+        sctx.fill();
+      };
+      drawBigEar(-44, -30, -12);
+      drawBigEar(12, 30, 44);
+
+      // Gold ₿ earring on left ear
+      const sway = Math.sin(splashTick * 0.09) * 4;
+      sctx.strokeStyle = "#ffe066";
+      sctx.lineWidth = 2.5;
+      sctx.beginPath();
+      sctx.arc(-52 + sway * 0.4, -34, 8, 0.2, Math.PI * 1.8);
+      sctx.stroke();
+      sctx.fillStyle = "#ffe066";
+      sctx.font = "bold 17px sans-serif";
+      sctx.fillText("₿", -58 + sway, -8);
+
+      // Golden eyes + vertical pupils
+      sctx.fillStyle = "#ffe066";
+      sctx.beginPath();
+      sctx.ellipse(-19, -18, 13, 10.5, 0, 0, Math.PI * 2);
+      sctx.ellipse(19, -18, 13, 10.5, 0, 0, Math.PI * 2);
+      sctx.fill();
+
+      sctx.fillStyle = "#060609";
+      sctx.fillRect(-22, -27, 6, 18);
+      sctx.fillRect(16, -27, 6, 18);
+
+      // Nose & pink tongue
+      sctx.fillStyle = "#4d363e";
+      sctx.beginPath();
+      sctx.moveTo(-6, -2);
+      sctx.lineTo(6, -2);
+      sctx.lineTo(0, 5);
+      sctx.closePath();
+      sctx.fill();
+
+      sctx.fillStyle = "#ff7aa2";
+      sctx.beginPath();
+      sctx.roundRect(-6, 5, 12, 13, 6);
+      sctx.fill();
+
+      // White whiskers
+      sctx.strokeStyle = "rgba(250, 250, 255, 0.9)";
+      sctx.lineWidth = 2.2;
+      sctx.beginPath();
+      sctx.moveTo(-30, -2); sctx.lineTo(-74, -8);
+      sctx.moveTo(-30, 6); sctx.lineTo(-74, 10);
+      sctx.moveTo(30, -2); sctx.lineTo(74, -8);
+      sctx.moveTo(30, 6); sctx.lineTo(74, 10);
+      sctx.stroke();
+
+      sctx.restore();
+    }
+
+    // =========================================================================
+    // 3-LANE RUNNER GAME ENGINE
+    // =========================================================================
+    const canvas = document.getElementById("runnerCanvas");
     const ctx = canvas.getContext("2d");
+    const stageWrap = document.getElementById("stageWrap");
 
-    const scoreText = document.getElementById("scoreText");
-    const lifeText = document.getElementById("lifeText");
-    const orbText = document.getElementById("orbText");
-    const bestText = document.getElementById("bestText");
+    const hudScore = document.getElementById("hudScore");
+    const hudLife = document.getElementById("hudLife");
+    const hudOrbs = document.getElementById("hudOrbs");
+    const hudBest = document.getElementById("hudBest");
     const powerFill = document.getElementById("powerFill");
-    const powerPct = document.getElementById("powerPct");
-    const walletPill = document.getElementById("walletPill");
-    const startModal = document.getElementById("startModal");
-    const reviveModal = document.getElementById("reviveModal");
-    const reviveHeading = document.getElementById("reviveHeading");
-    const reviveCopy = document.getElementById("reviveCopy");
-    const txFeedback = document.getElementById("txFeedback");
-    const reviveZokiBtn = document.getElementById("reviveZokiBtn");
 
-    const GROUND_Y = 320;
-    let bestScore = Number(localStorage.getItem("zoki_nine_lives_best") || 0);
-    bestText.textContent = bestScore;
+    const splashScreen = document.getElementById("splashScreen");
+    const reviveScreen = document.getElementById("reviveScreen");
+    const reviveTitle = document.getElementById("reviveTitle");
+    const reviveDesc = document.getElementById("reviveDesc");
+    const startGameBtn = document.getElementById("startGameBtn");
+    const loaderBox = document.getElementById("loaderBox");
+    const loaderFill = document.getElementById("loaderFill");
+    const loaderLabel = document.getElementById("loaderLabel");
+
+    let W = 0, H = 0, dpr = 1;
+    function resizeStage() {
+      const rect = stageWrap.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = Math.max(300, rect.width);
+      H = Math.max(300, rect.height);
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resizeStage);
+    resizeStage();
+
+    let bestScore = Number(localStorage.getItem("zoki_nine_lives_best_v2") || 0);
+    hudBest.textContent = bestScore;
 
     const state = {
-      phase: "start",
+      phase: "splash", // "splash" | "running" | "revive"
       score: 0,
       orbs: 0,
       life: 1,
       power: 100,
-      speed: 5.4,
-      tick: 0,
+      speed: 0.013,
+      tieScroll: 0,
       shake: 0,
-      provider: null,
-      signer: null,
-      account: null
+      spawnCd: 24
     };
 
     const zoki = {
-      x: 110,
-      y: GROUND_Y - 46,
-      w: 54,
-      h: 46,
-      vy: 0,
-      gravity: 0.72,
-      jumpVel: -13.2,
-      onGround: true,
-      runPhase: 0
+      lane: 0,       // -1 left, 0 center, 1 right
+      visLane: 0,
+      jumpZ: 0,
+      vJump: 0,
+      rollFrames: 0,
+      stride: 0
     };
 
-    let traps = [];
-    let orbsList = [];
-    let popups = [];
-    let stars = Array.from({ length: 28 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * (GROUND_Y - 40),
-      r: 0.8 + Math.random() * 1.6,
-      v: 0.3 + Math.random() * 0.9
-    }));
+    let hazards = []; // { lane, depth, type: "low" | "high" }
+    let coins = [];   // { lane, depth, elevated }
+    let pops = [];    // { x, y, label, color, ttl }
 
-    function addPopup(text, x, y, color = "#ffd84d") {
-      popups.push({ text, x, y, vy: -1.1, alpha: 1, color });
-    }
+    // Splash loading bar animation
+    let loadPct = 0;
+    const loadTimer = setInterval(() => {
+      loadPct = Math.min(100, loadPct + 10);
+      loaderFill.style.width = `${loadPct}%`;
+      if (loadPct < 45) loaderLabel.textContent = `Loading Zoki visuals... ${loadPct}%`;
+      else if (loadPct < 85) loaderLabel.textContent = `Initializing Web Audio & 3 lanes... ${loadPct}%`;
+      else if (loadPct < 100) loaderLabel.textContent = `Connecting Robinhood Chain config... ${loadPct}%`;
+      else {
+        clearInterval(loadTimer);
+        loaderLabel.textContent = "Ready — tap Start Game";
+        startGameBtn.disabled = false;
+        startGameBtn.textContent = "Start Game (Life 1)";
+      }
+    }, 85);
 
     function syncHud() {
-      const s = Math.floor(state.score);
-      scoreText.textContent = s;
-      lifeText.textContent = `${state.life} / ${CONFIG.maxLives}`;
-      orbText.textContent = state.orbs;
-      bestText.textContent = bestScore;
-      const p = Math.max(0, Math.min(100, state.power));
-      powerFill.style.width = `${p}%`;
-      powerPct.textContent = `${Math.ceil(p)}%`;
+      hudScore.textContent = Math.floor(state.score);
+      hudLife.textContent = `${state.life}/${CFG.maxLives}`;
+      hudOrbs.textContent = state.orbs;
+      hudBest.textContent = bestScore;
+      powerFill.style.width = `${Math.max(0, Math.min(100, state.power))}%`;
     }
 
-    function jump() {
-      if (state.phase !== "playing") return;
-      if (zoki.onGround) {
-        zoki.vy = zoki.jumpVel;
-        zoki.onGround = false;
-        playTone(460, 0.11, "triangle", 0.06);
+    function shiftLane(delta) {
+      if (state.phase !== "running") return;
+      const target = Math.max(-1, Math.min(1, zoki.lane + delta));
+      if (target !== zoki.lane) {
+        zoki.lane = target;
+        SFX.laneSwitch();
       }
     }
 
-    function startRun(preserveProgress = false) {
-      if (!preserveProgress) {
-        state.score = 0;
-        state.orbs = 0;
-        state.life = 1;
+    function doJump() {
+      if (state.phase !== "running") return;
+      if (zoki.jumpZ <= 0.001) {
+        zoki.vJump = 0.025;
+        zoki.rollFrames = 0;
+        SFX.jump();
       }
+    }
+
+    function doRoll() {
+      if (state.phase !== "running") return;
+      if (zoki.jumpZ > 0.01) {
+        zoki.vJump = Math.min(zoki.vJump, -0.026);
+      }
+      zoki.rollFrames = 26;
+      SFX.roll();
+    }
+
+    function startNewRun() {
+      SFX.ensure();
+      state.score = 0;
+      state.orbs = 0;
+      state.life = 1;
       state.power = 100;
-      state.speed = 5.4;
+      state.speed = 0.013;
       state.shake = 0;
-      zoki.y = GROUND_Y - zoki.h;
-      zoki.vy = 0;
-      zoki.onGround = true;
-      traps = [];
-      orbsList = [];
-      popups = [];
-      txFeedback.textContent = "";
-      state.phase = "playing";
-      startModal.classList.add("hidden");
-      reviveModal.classList.add("hidden");
+      state.spawnCd = 22;
+      zoki.lane = 0;
+      zoki.visLane = 0;
+      zoki.jumpZ = 0;
+      zoki.vJump = 0;
+      zoki.rollFrames = 0;
+      hazards = [];
+      coins = [];
+      pops = [];
+      reviveFeedback.textContent = "";
+      state.phase = "running";
+      splashScreen.classList.add("hidden");
+      reviveScreen.classList.add("hidden");
       syncHud();
     }
 
-    function openRevive(reason) {
+    function triggerWipeout(reason) {
       if (state.phase === "revive") return;
       state.phase = "revive";
-      state.shake = 10;
-      playTone(155, 0.25, "sawtooth", 0.07);
+      state.shake = 12;
+      SFX.wipeout();
 
-      const currentScore = Math.floor(state.score);
-      if (currentScore > bestScore) {
-        bestScore = currentScore;
-        localStorage.setItem("zoki_nine_lives_best", bestScore);
+      const sc = Math.floor(state.score);
+      if (sc > bestScore) {
+        bestScore = sc;
+        localStorage.setItem("zoki_nine_lives_best_v2", bestScore);
       }
       syncHud();
 
-      reviveHeading.textContent = reason;
-      txFeedback.textContent = "";
+      reviveTitle.textContent = reason;
+      reviveFeedback.textContent = "";
+      const payBtn = document.getElementById("payReviveBtn");
 
-      if (state.life >= CONFIG.maxLives) {
-        reviveCopy.innerHTML = "All <strong>9 Lives</strong> have been used on this run. Start a fresh run to climb again.";
-        reviveZokiBtn.disabled = true;
+      if (state.life >= CFG.maxLives) {
+        reviveDesc.innerHTML = "All <strong>9 Lives</strong> used on this run! Tap <strong>New Run</strong> to go again.";
+        payBtn.disabled = true;
       } else {
-        reviveCopy.innerHTML = `Spend <strong>${CONFIG.reviveAmountTokens} $ZOKI</strong> to restore 100% power and enter <strong>Life ${state.life + 1} of ${CONFIG.maxLives}</strong>.`;
-        reviveZokiBtn.disabled = false;
+        reviveDesc.innerHTML = `Pay <strong>${CFG.reviveAmount} $ZOKI</strong> to recharge power and enter <strong>Life ${state.life + 1} of ${CFG.maxLives}</strong>.`;
+        payBtn.disabled = false;
       }
 
-      reviveModal.classList.remove("hidden");
+      refreshWalletStatus();
+      reviveScreen.classList.remove("hidden");
     }
 
     function completeRevive() {
-      if (state.life < CONFIG.maxLives) {
-        state.life += 1;
-      }
+      if (state.life < CFG.maxLives) state.life += 1;
       state.power = 100;
-      traps = traps.filter(t => t.x > zoki.x + 220 || t.x + t.w < zoki.x - 40);
-      state.phase = "playing";
-      reviveModal.classList.add("hidden");
-      addPopup(`LIFE ${state.life} ACTIVE!`, zoki.x + 10, zoki.y - 16, "#2ed573");
-      playTone(680, 0.16, "sine", 0.08);
+      zoki.jumpZ = 0;
+      zoki.vJump = 0;
+      zoki.rollFrames = 0;
+      hazards = hazards.filter(h => h.depth > 0.45);
+      state.phase = "running";
+      reviveScreen.classList.add("hidden");
+      pops.push({ x: W * 0.5, y: H * 0.65, label: `LIFE ${state.life} ON!`, color: "#25d366", ttl: 45 });
+      SFX.revive();
       syncHud();
     }
 
-    async function connectWallet() {
-      if (!window.ethers) {
-        txFeedback.textContent = "Wallet library still loading—check connection and try again.";
-        return false;
-      }
-      if (!window.ethereum) {
-        txFeedback.textContent = "No injected wallet found. Open in MetaMask/Rabby or use Test Refill.";
-        return false;
-      }
-      try {
-        state.provider = new window.ethers.BrowserProvider(window.ethereum);
-        const accounts = await state.provider.send("eth_requestAccounts", []);
-        state.signer = await state.provider.getSigner();
-        state.account = accounts[0];
-        walletPill.textContent = `${state.account.slice(0, 6)}...${state.account.slice(-4)}`;
-        return true;
-      } catch (err) {
-        txFeedback.textContent = err?.shortMessage || "Wallet connection declined.";
-        return false;
-      }
+    function getTrackGeom() {
+      const horizonY = H * 0.26;
+      const baseY = H * 0.94;
+      const topHalf = W * 0.13;
+      const botHalf = W * 0.44;
+      return { horizonY, baseY, topHalf, botHalf };
     }
 
-    async function payZokiToRevive() {
-      if (state.life >= CONFIG.maxLives) return;
-
-      if (!state.signer) {
-        const ok = await connectWallet();
-        if (!ok) return;
-      }
-
-      if (!window.ethers.isAddress(CONFIG.treasuryAddress) || CONFIG.treasuryAddress.toLowerCase().endsWith("dead")) {
-        txFeedback.textContent = "Set a valid treasuryAddress in index.html before accepting live $ZOKI payments.";
-        return;
-      }
-
-      try {
-        reviveZokiBtn.disabled = true;
-        txFeedback.textContent = "Awaiting wallet signature...";
-
-        const token = new window.ethers.Contract(CONFIG.tokenAddress, ERC20_ABI, state.signer);
-        const decimals = await token.decimals();
-        const rawAmount = window.ethers.parseUnits(CONFIG.reviveAmountTokens, decimals);
-
-        const tx = await token.transfer(CONFIG.treasuryAddress, rawAmount);
-        txFeedback.textContent = `Tx sent (${tx.hash.slice(0, 10)}...). Waiting for confirmation...`;
-
-        const receipt = await tx.wait(1);
-        if (receipt && receipt.status === 1) {
-          txFeedback.textContent = `Confirmed! Entering Life ${state.life + 1}...`;
-          setTimeout(completeRevive, 350);
-        } else {
-          txFeedback.textContent = "Transaction failed on-chain.";
-          reviveZokiBtn.disabled = false;
-        }
-      } catch (err) {
-        txFeedback.textContent = err?.shortMessage || "Transaction cancelled or reverted.";
-        reviveZokiBtn.disabled = false;
-      }
+    function toScreen(laneVal, depth, lift = 0) {
+      const { horizonY, baseY, topHalf, botHalf } = getTrackGeom();
+      const t = Math.pow(Math.max(0, Math.min(1.15, depth)), 1.55);
+      const y0 = horizonY + (baseY - horizonY) * t;
+      const half = topHalf + (botHalf - topHalf) * t;
+      const scale = 0.22 + t * 1.15;
+      const x = W * 0.5 + (laneVal / 1.5) * half;
+      const y = y0 - lift * scale;
+      return { x, y, scale };
     }
 
-    function drawZoki() {
-      const { x, y, w, h, onGround, runPhase } = zoki;
-      const bob = onGround ? Math.sin(runPhase) * 2.2 : -1.5;
-      const baseY = y + bob;
-
+    function drawRunnerZoki(cx, cy, sc, rollFrames, stride) {
       ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(sc, sc);
 
-      const tailSwing = Math.sin(runPhase * 0.9) * 8;
-      ctx.strokeStyle = "#16161c";
-      ctx.lineWidth = 5;
+      const bob = rollFrames > 0 ? 12 : Math.sin(stride) * 3;
+      ctx.rotate((zoki.lane - zoki.visLane) * 0.22);
+
+      // Ground shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 24, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const topY = rollFrames > 0 ? -24 + bob : -44 + bob;
+      const h = rollFrames > 0 ? 22 : 34;
+
+      // Tail
+      const swing = Math.sin(stride * 0.85) * 10;
+      ctx.strokeStyle = "#15151c";
+      ctx.lineWidth = 6;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(x + 8, baseY + h - 10);
-      ctx.quadraticCurveTo(x - 10, baseY + h - 22 + tailSwing, x - 6, baseY + 12 + tailSwing);
+      ctx.moveTo(-14, topY + h - 6);
+      ctx.quadraticCurveTo(-30, topY + 6 + swing, -24, topY - 12 + swing);
       ctx.stroke();
 
-      const legOffset = onGround ? Math.sin(runPhase) * 5 : 4;
-      ctx.fillStyle = "#121217";
-      ctx.fillRect(x + 12 - legOffset * 0.5, baseY + h - 8, 8, 8);
-      ctx.fillRect(x + w - 22 + legOffset * 0.5, baseY + h - 8, 8, 8);
+      // Legs
+      if (rollFrames <= 0) {
+        const legSwing = Math.sin(stride) * 7;
+        ctx.fillStyle = "#111117";
+        ctx.fillRect(-13 - legSwing * 0.5, -10, 8, 10);
+        ctx.fillRect(5 + legSwing * 0.5, -10, 8, 10);
+      }
 
-      ctx.fillStyle = "#101015";
+      // Body
+      ctx.fillStyle = "#111117";
       ctx.strokeStyle = "#f5b700";
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.roundRect(x + 6, baseY + 6, w - 10, h - 12, 14);
+      ctx.roundRect(-18, topY, 36, h, 13);
       ctx.fill();
       ctx.stroke();
 
-      const drawEar = (tipX, baseL, baseR) => {
-        ctx.fillStyle = "#101015";
+      // Ears + inner tint
+      const ear = (lx, tx, rx) => {
+        ctx.fillStyle = "#111117";
         ctx.strokeStyle = "#f5b700";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(baseL, baseY + 11);
-        ctx.lineTo(tipX, baseY - 5);
-        ctx.lineTo(baseR, baseY + 10);
+        ctx.moveTo(lx, topY + 4);
+        ctx.lineTo(tx, topY - 13);
+        ctx.lineTo(rx, topY + 4);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#5a3942";
+        ctx.fillStyle = "#6d414d";
         ctx.beginPath();
-        ctx.moveTo(baseL + 3, baseY + 10);
-        ctx.lineTo(tipX, baseY);
-        ctx.lineTo(baseR - 3, baseY + 9);
+        ctx.moveTo(lx + 2.5, topY + 3);
+        ctx.lineTo(tx, topY - 8);
+        ctx.lineTo(rx - 2.5, topY + 3);
         ctx.closePath();
         ctx.fill();
       };
+      ear(-15, -11, -5);
+      ear(5, 11, 15);
 
-      drawEar(x + 14, x + 9, x + 21);
-      drawEar(x + w - 14, x + w - 21, x + w - 9);
+      // Left-ear gold ₿ earring
+      const eSwing = Math.sin(stride * 1.1) * 2;
+      ctx.fillStyle = "#ffe066";
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("₿", -18 + eSwing, topY + 8);
 
-      const earringSwing = Math.sin(runPhase * 1.1) * 1.6;
-      ctx.strokeStyle = "#ffd84d";
-      ctx.lineWidth = 1.8;
+      // Golden eyes + vertical slits
+      const ey = topY + 12;
+      ctx.fillStyle = "#ffe066";
       ctx.beginPath();
-      ctx.arc(x + 9 + earringSwing * 0.4, baseY + 14, 4.2, 0.2, Math.PI * 1.8);
-      ctx.stroke();
-
-      ctx.fillStyle = "#ffd84d";
-      ctx.font = "bold 9px sans-serif";
-      ctx.fillText("₿", x + 5 + earringSwing, baseY + 25);
-
-      const eyeY = baseY + 19;
-      const leftEyeX = x + 24;
-      const rightEyeX = x + 37;
-
-      ctx.fillStyle = "#ffd84d";
-      ctx.beginPath();
-      ctx.ellipse(leftEyeX, eyeY, 4.6, 3.6, -0.1, 0, Math.PI * 2);
-      ctx.ellipse(rightEyeX, eyeY, 4.6, 3.6, 0.1, 0, Math.PI * 2);
+      ctx.ellipse(-6.5, ey, 5.2, 4.2, 0, 0, Math.PI * 2);
+      ctx.ellipse(6.5, ey, 5.2, 4.2, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#08080a";
-      ctx.fillRect(leftEyeX - 1.1, eyeY - 3, 2.2, 6);
-      ctx.fillRect(rightEyeX - 1.1, eyeY - 3, 2.2, 6);
+      ctx.fillStyle = "#060609";
+      ctx.fillRect(-7.7, ey - 3.6, 2.4, 7.2);
+      ctx.fillRect(5.3, ey - 3.6, 2.4, 7.2);
 
-      ctx.fillStyle = "#3a2b30";
-      ctx.beginPath();
-      ctx.moveTo(x + 29, baseY + 25);
-      ctx.lineTo(x + 33, baseY + 25);
-      ctx.lineTo(x + 31, baseY + 27.5);
-      ctx.closePath();
-      ctx.fill();
-
+      // Pink tongue
       ctx.fillStyle = "#ff7aa2";
       ctx.beginPath();
-      ctx.roundRect(x + 29, baseY + 27.5, 4.5, 5.5, 2);
+      ctx.roundRect(-2.5, ey + 6.5, 5, 6, 2.5);
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(245, 245, 247, 0.85)";
-      ctx.lineWidth = 1.1;
+      // White whiskers
+      ctx.strokeStyle = "rgba(250, 250, 255, 0.9)";
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(x + 20, baseY + 25); ctx.lineTo(x + 7, baseY + 23);
-      ctx.moveTo(x + 20, baseY + 28); ctx.lineTo(x + 7, baseY + 29);
-      ctx.moveTo(x + 42, baseY + 25); ctx.lineTo(x + 55, baseY + 23);
-      ctx.moveTo(x + 42, baseY + 28); ctx.lineTo(x + 55, baseY + 29);
+      ctx.moveTo(-11, ey + 5); ctx.lineTo(-26, ey + 3);
+      ctx.moveTo(-11, ey + 8); ctx.lineTo(-26, ey + 9);
+      ctx.moveTo(11, ey + 5); ctx.lineTo(26, ey + 3);
+      ctx.moveTo(11, ey + 8); ctx.lineTo(26, ey + 9);
       ctx.stroke();
 
       ctx.restore();
     }
 
-    function render() {
-      state.tick++;
+    function spawnPattern() {
+      const lanes = [-1, 0, 1];
+      const hLane = lanes[Math.floor(Math.random() * lanes.length)];
+      const type = Math.random() < 0.34 ? "high" : "low";
+      hazards.push({ lane: hLane, depth: 0.02, type });
+
+      const cLane = lanes[Math.floor(Math.random() * lanes.length)];
+      coins.push({
+        lane: cLane,
+        depth: 0.02,
+        elevated: Math.random() < 0.45
+      });
+    }
+
+    function frame() {
+      if (state.phase === "splash") {
+        drawSplashArt();
+      }
+
+      if (state.shake > 0) {
+        state.shake *= 0.84;
+        if (state.shake < 0.3) state.shake = 0;
+      }
 
       ctx.save();
       if (state.shake > 0) {
-        const dx = (Math.random() - 0.5) * state.shake;
-        const dy = (Math.random() - 0.5) * state.shake;
-        ctx.translate(dx, dy);
-        state.shake *= 0.85;
-        if (state.shake < 0.4) state.shake = 0;
+        ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
       }
 
-      ctx.fillStyle = "#060609";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const { horizonY, baseY, topHalf, botHalf } = getTrackGeom();
 
-      for (const st of stars) {
-        if (state.phase === "playing") {
-          st.x -= st.v + state.speed * 0.12;
-          if (st.x < 0) {
-            st.x = canvas.width;
-            st.y = Math.random() * (GROUND_Y - 40);
-          }
+      const sky = ctx.createLinearGradient(0, 0, 0, horizonY);
+      sky.addColorStop(0, "#05050b");
+      sky.addColorStop(1, "#191509");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      // Side city skyline blocks
+      const blockW = Math.max(24, W * 0.075);
+      for (let side = -1; side <= 1; side += 2) {
+        for (let b = 0; b < 5; b++) {
+          const bx = side < 0 ? b * (blockW * 0.72) : W - (b + 1) * (blockW * 0.72);
+          const bh = 36 + ((b * 29) % 58);
+          ctx.fillStyle = "rgba(18, 18, 28, 0.85)";
+          ctx.fillRect(bx, horizonY - bh, blockW * 0.66, bh);
         }
-        ctx.fillStyle = "rgba(255, 216, 77, 0.35)";
-        ctx.beginPath();
-        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
-        ctx.fill();
       }
 
-      ctx.strokeStyle = "#f5b700";
-      ctx.lineWidth = 2;
+      // 3-lane track deck
+      ctx.fillStyle = "#0d0d14";
       ctx.beginPath();
-      ctx.moveTo(0, GROUND_Y);
-      ctx.lineTo(canvas.width, GROUND_Y);
-      ctx.stroke();
+      ctx.moveTo(W * 0.5 - topHalf * 1.15, horizonY);
+      ctx.lineTo(W * 0.5 + topHalf * 1.15, horizonY);
+      ctx.lineTo(W * 0.5 + botHalf * 1.15, baseY);
+      ctx.lineTo(W * 0.5 - botHalf * 1.15, baseY);
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.fillStyle = "#0b0b10";
-      ctx.fillRect(0, GROUND_Y + 2, canvas.width, canvas.height - GROUND_Y);
+      if (state.phase === "running") {
+        state.tieScroll = (state.tieScroll + state.speed * 1.8) % 0.16;
+      }
 
-      if (state.phase === "playing") {
-        state.score += 0.14;
-        state.power -= 0.06;
-        state.speed = Math.min(11, 5.4 + state.score * 0.0045);
-        zoki.runPhase += 0.28;
+      ctx.strokeStyle = "rgba(245, 183, 0, 0.16)";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 8; i++) {
+        const d = (i * 0.16 + state.tieScroll) % 1.05;
+        const p1 = toScreen(-1.5, d, 0);
+        const p2 = toScreen(1.5, d, 0);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
 
-        zoki.vy += zoki.gravity;
-        zoki.y += zoki.vy;
-        if (zoki.y >= GROUND_Y - zoki.h) {
-          zoki.y = GROUND_Y - zoki.h;
-          zoki.vy = 0;
-          zoki.onGround = true;
-        }
+      for (const rail of [-1.5, -0.5, 0.5, 1.5]) {
+        const a = toScreen(rail, 0, 0);
+        const b = toScreen(rail, 1.05, 0);
+        ctx.strokeStyle = rail === -1.5 || rail === 1.5 ? "#f5b700" : "rgba(255,255,255,0.22)";
+        ctx.lineWidth = rail === -1.5 || rail === 1.5 ? 2.5 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
 
-        if (state.tick % 84 === 0) {
-          const h = 26 + Math.floor(Math.random() * 18);
-          traps.push({
-            x: canvas.width + 24,
-            y: GROUND_Y - h,
-            w: 22,
-            h
-          });
-        }
+      if (state.phase === "running") {
+        state.score += 0.16;
+        state.power -= 0.055;
+        state.speed = Math.min(0.025, 0.013 + state.score * 0.000008);
+        zoki.stride += 0.34;
+        zoki.visLane += (zoki.lane - zoki.visLane) * 0.28;
 
-        if (state.tick % 118 === 0) {
-          orbsList.push({
-            x: canvas.width + 24,
-            y: GROUND_Y - 72 - Math.floor(Math.random() * 60),
-            r: 12
-          });
-        }
-
-        for (let i = traps.length - 1; i >= 0; i--) {
-          const t = traps[i];
-          t.x -= state.speed;
-
-          const collided =
-            zoki.x + 8 < t.x + t.w &&
-            zoki.x + zoki.w - 8 > t.x &&
-            zoki.y + 6 < t.y + t.h &&
-            zoki.y + zoki.h - 4 > t.y;
-
-          if (collided) {
-            openRevive("TRAP IMPACT!");
-            break;
+        if (zoki.jumpZ > 0 || zoki.vJump > 0) {
+          zoki.jumpZ += zoki.vJump;
+          zoki.vJump -= 0.00145;
+          if (zoki.jumpZ <= 0) {
+            zoki.jumpZ = 0;
+            zoki.vJump = 0;
           }
-          if (t.x + t.w < -30) traps.splice(i, 1);
+        }
+        if (zoki.rollFrames > 0) zoki.rollFrames--;
+
+        state.spawnCd--;
+        if (state.spawnCd <= 0) {
+          spawnPattern();
+          state.spawnCd = Math.max(34, 58 - Math.floor(state.score / 250));
         }
 
-        for (let i = orbsList.length - 1; i >= 0; i--) {
-          const o = orbsList[i];
-          o.x -= state.speed;
-
-          const cx = zoki.x + zoki.w * 0.5;
-          const cy = zoki.y + zoki.h * 0.5;
-          if (Math.hypot(cx - o.x, cy - o.y) < o.r + 22) {
+        for (let i = coins.length - 1; i >= 0; i--) {
+          const c = coins[i];
+          c.depth += state.speed * 1.35;
+          const zHit = c.depth > 0.78 && c.depth < 0.98;
+          const lHit = Math.abs(c.lane - zoki.visLane) < 0.42;
+          const zLift = zoki.jumpZ * 190;
+          const cLift = c.elevated ? 42 : 14;
+          if (zHit && lHit && Math.abs(zLift - cLift) < 34) {
             state.orbs += 1;
-            state.score += 20;
-            state.power = Math.min(100, state.power + 15);
-            addPopup("+15% PWR", o.x, o.y - 8, "#ffd84d");
-            playTone(760, 0.09, "sine", 0.06);
-            orbsList.splice(i, 1);
+            state.score += 25;
+            state.power = Math.min(100, state.power + 14);
+            const pt = toScreen(c.lane, c.depth, cLift);
+            pops.push({ x: pt.x, y: pt.y - 10, label: "+₿ PWR", color: "#ffe066", ttl: 32 });
+            SFX.orb();
+            coins.splice(i, 1);
             continue;
           }
-          if (o.x < -30) orbsList.splice(i, 1);
+          if (c.depth > 1.12) coins.splice(i, 1);
         }
 
-        if (state.power <= 0 && state.phase === "playing") {
+        for (let i = hazards.length - 1; i >= 0; i--) {
+          const h = hazards[i];
+          h.depth += state.speed * 1.35;
+          const zHit = h.depth > 0.80 && h.depth < 0.96;
+          const lHit = Math.abs(h.lane - zoki.visLane) < 0.36;
+          if (zHit && lHit) {
+            if (h.type === "low" && zoki.jumpZ < 0.14) {
+              triggerWipeout("BARRIER HIT!");
+              break;
+            }
+            if (h.type === "high" && zoki.rollFrames <= 0 && zoki.jumpZ < 0.08) {
+              triggerWipeout("OVERHEAD HIT!");
+              break;
+            }
+          }
+          if (h.depth > 1.15) hazards.splice(i, 1);
+        }
+
+        if (state.power <= 0 && state.phase === "running") {
           state.power = 0;
-          openRevive("POWER DEPLETED!");
+          triggerWipeout("POWER DEPLETED!");
         }
 
-        const rounded = Math.floor(state.score);
-        if (rounded > bestScore) {
-          bestScore = rounded;
-          localStorage.setItem("zoki_nine_lives_best", bestScore);
+        const sc = Math.floor(state.score);
+        if (sc > bestScore) {
+          bestScore = sc;
+          localStorage.setItem("zoki_nine_lives_best_v2", bestScore);
         }
         syncHud();
       }
 
-      for (const t of traps) {
-        ctx.fillStyle = "#ff4757";
-        ctx.beginPath();
-        ctx.moveTo(t.x, t.y + t.h);
-        ctx.lineTo(t.x + t.w * 0.5, t.y);
-        ctx.lineTo(t.x + t.w, t.y + t.h);
-        ctx.closePath();
-        ctx.fill();
-      }
+      const items = [];
+      for (const c of coins) items.push({ kind: "coin", d: c.depth, data: c });
+      for (const h of hazards) items.push({ kind: "haz", d: h.depth, data: h });
+      items.sort((a, b) => a.d - b.d);
 
-      for (const o of orbsList) {
-        ctx.fillStyle = "rgba(255, 216, 77, 0.2)";
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.r + 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#ffd84d";
-        ctx.beginPath();
-        ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#09090b";
-        ctx.font = "bold 12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("₿", o.x, o.y + 0.5);
-      }
-
-      drawZoki();
-
-      for (let i = popups.length - 1; i >= 0; i--) {
-        const p = popups[i];
-        p.y += p.vy;
-        p.alpha -= 0.022;
-        if (p.alpha <= 0) {
-          popups.splice(i, 1);
-          continue;
+      for (const it of items) {
+        if (it.kind === "coin") {
+          const c = it.data;
+          const lift = c.elevated ? 42 : 14;
+          const p = toScreen(c.lane, c.depth, lift);
+          const r = Math.max(4, 15 * p.scale);
+          ctx.fillStyle = "#ffe066";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#08080c";
+          ctx.font = `bold ${Math.max(8, Math.round(13 * p.scale))}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("₿", p.x, p.y + 0.5);
+        } else {
+          const h = it.data;
+          if (h.type === "low") {
+            const p = toScreen(h.lane, h.depth, 0);
+            const bw = Math.max(12, 54 * p.scale);
+            const bh = Math.max(12, 42 * p.scale);
+            ctx.fillStyle = "#ff3b5c";
+            ctx.strokeStyle = "#ff9eb0";
+            ctx.lineWidth = Math.max(1, 2 * p.scale);
+            ctx.beginPath();
+            ctx.roundRect(p.x - bw * 0.5, p.y - bh, bw, bh, 5 * p.scale);
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            const p = toScreen(h.lane, h.depth, 34);
+            const bw = Math.max(16, 62 * p.scale);
+            const bh = Math.max(8, 22 * p.scale);
+            ctx.fillStyle = "#ff7b00";
+            ctx.strokeStyle = "#ffe066";
+            ctx.lineWidth = Math.max(1, 1.8 * p.scale);
+            ctx.beginPath();
+            ctx.roundRect(p.x - bw * 0.5, p.y - bh, bw, bh, 4 * p.scale);
+            ctx.fill();
+            ctx.stroke();
+          }
         }
+      }
+
+      const zPos = toScreen(zoki.visLane, 0.88, zoki.jumpZ * 190);
+      drawRunnerZoki(zPos.x, zPos.y, zPos.scale * 1.15, zoki.rollFrames, zoki.stride);
+
+      for (let i = pops.length - 1; i >= 0; i--) {
+        const pop = pops[i];
+        pop.y -= 1.2;
+        pop.ttl--;
+        if (pop.ttl <= 0) { pops.splice(i, 1); continue; }
         ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.fillStyle = p.color;
-        ctx.font = "bold 12px sans-serif";
+        ctx.globalAlpha = Math.min(1, pop.ttl / 18);
+        ctx.fillStyle = pop.color;
+        ctx.font = "bold 13px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(p.text, p.x, p.y);
+        ctx.fillText(pop.label, pop.x, pop.y);
         ctx.restore();
       }
 
       ctx.restore();
-      requestAnimationFrame(render);
+      requestAnimationFrame(frame);
     }
 
-    document.getElementById("playBtn").addEventListener("click", () => startRun(false));
-    document.getElementById("newRunBtn").addEventListener("click", () => startRun(false));
-    document.getElementById("testRefillBtn").addEventListener("click", () => {
-      if (state.life >= CONFIG.maxLives) {
-        txFeedback.textContent = "All 9 lives used. Click New Run.";
+    // Touch swipe + tap controls
+    let tStartX = 0, tStartY = 0, tSwiped = false;
+    stageWrap.addEventListener("touchstart", (e) => {
+      if (!e.touches.length) return;
+      tStartX = e.touches[0].clientX;
+      tStartY = e.touches[0].clientY;
+      tSwiped = false;
+    }, { passive: true });
+
+    stageWrap.addEventListener("touchmove", (e) => {
+      if (!e.touches.length || state.phase !== "running") return;
+      const dx = e.touches[0].clientX - tStartX;
+      const dy = e.touches[0].clientY - tStartY;
+      if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy)) {
+        shiftLane(dx > 0 ? 1 : -1);
+        tStartX = e.touches[0].clientX;
+        tStartY = e.touches[0].clientY;
+        tSwiped = true;
+      } else if (Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) {
+        if (dy < 0) doJump();
+        else doRoll();
+        tStartX = e.touches[0].clientX;
+        tStartY = e.touches[0].clientY;
+        tSwiped = true;
+      }
+    }, { passive: true });
+
+    stageWrap.addEventListener("touchend", () => {
+      if (!tSwiped && state.phase === "running") doJump();
+    });
+
+    stageWrap.addEventListener("mousedown", (e) => {
+      if (e.button === 0 && state.phase === "running") doJump();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") shiftLane(-1);
+      else if (e.code === "ArrowRight" || e.code === "KeyD") shiftLane(1);
+      else if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+        e.preventDefault();
+        doJump();
+      } else if (e.code === "ArrowDown" || e.code === "KeyS") {
+        e.preventDefault();
+        doRoll();
+      }
+    });
+
+    startGameBtn.addEventListener("click", startNewRun);
+    document.getElementById("freshRunBtn").addEventListener("click", startNewRun);
+    document.getElementById("testReviveBtn").addEventListener("click", () => {
+      if (state.life >= CFG.maxLives) {
+        reviveFeedback.textContent = "All 9 lives used. Tap New Run.";
         return;
       }
       completeRevive();
     });
-    reviveZokiBtn.addEventListener("click", payZokiToRevive);
-    document.getElementById("connectBtn").addEventListener("click", connectWallet);
+    document.getElementById("payReviveBtn").addEventListener("click", payZokiRevive);
+    document.getElementById("recheckBtn").addEventListener("click", checkBalanceOnly);
+    document.getElementById("connectBtn").addEventListener("click", connectMetaMask);
 
-    const soundBtn = document.getElementById("soundBtn");
-    soundBtn.addEventListener("click", () => {
-      soundEnabled = !soundEnabled;
-      soundBtn.textContent = soundEnabled ? "SFX: On" : "SFX: Off";
+    const sfxBtn = document.getElementById("sfxBtn");
+    sfxBtn.addEventListener("click", () => {
+      SFX.enabled = !SFX.enabled;
+      sfxBtn.textContent = SFX.enabled ? "SFX: On" : "SFX: Off";
     });
 
-    canvas.addEventListener("pointerdown", jump);
-    window.addEventListener("keydown", (e) => {
-      if (e.code === "Space" || e.code === "ArrowUp") {
-        e.preventDefault();
-        jump();
-      }
-    });
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", (accs) => {
+        account = accs && accs[0] ? accs[0] : null;
+        refreshWalletStatus();
+      });
+      window.ethereum.on("chainChanged", () => {
+        refreshWalletStatus();
+      });
+    }
 
+    refreshWalletStatus();
     syncHud();
-    requestAnimationFrame(render);
+    requestAnimationFrame(frame);
   </script>
 </body>
 </html>
