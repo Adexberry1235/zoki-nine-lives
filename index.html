@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>ZOKI: Nine Lives Run</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
     :root {
       --bg: #050507;
@@ -343,12 +343,8 @@
   </div>
 
   <script>
-    // =========================================================================
-    // CONFIGURATION
-    // =========================================================================
     const CONFIG = {
       tokenAddress: "0x54A557dc542676f56CE2B1B5807Cc76BEdca308a",
-      // Replace with your receiving wallet address before going live with real payouts:
       treasuryAddress: "0x000000000000000000000000000000000000dEaD",
       reviveAmountTokens: "500",
       maxLives: 9
@@ -359,9 +355,6 @@
       "function decimals() view returns (uint8)"
     ];
 
-    // =========================================================================
-    // AUDIO SYNTH (Lightweight Web Audio SFX, zero external files)
-    // =========================================================================
     let soundEnabled = true;
     let audioCtx = null;
 
@@ -370,8 +363,9 @@
       try {
         if (!audioCtx) {
           const Ctx = window.AudioContext || window.webkitAudioContext;
-          audioCtx = new Ctx();
+          if (Ctx) audioCtx = new Ctx();
         }
+        if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
@@ -385,9 +379,6 @@
       } catch (_) {}
     }
 
-    // =========================================================================
-    // DOM & GAME STATE
-    // =========================================================================
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
@@ -410,7 +401,7 @@
     bestText.textContent = bestScore;
 
     const state = {
-      phase: "start", // "start" | "playing" | "revive"
+      phase: "start",
       score: 0,
       orbs: 0,
       life: 1,
@@ -531,16 +522,17 @@
       syncHud();
     }
 
-    // =========================================================================
-    // WALLET & $ZOKI PAYMENT
-    // =========================================================================
     async function connectWallet() {
+      if (!window.ethers) {
+        txFeedback.textContent = "Wallet library still loading—check connection and try again.";
+        return false;
+      }
       if (!window.ethereum) {
         txFeedback.textContent = "No injected wallet found. Open in MetaMask/Rabby or use Test Refill.";
         return false;
       }
       try {
-        state.provider = new ethers.BrowserProvider(window.ethereum);
+        state.provider = new window.ethers.BrowserProvider(window.ethereum);
         const accounts = await state.provider.send("eth_requestAccounts", []);
         state.signer = await state.provider.getSigner();
         state.account = accounts[0];
@@ -560,7 +552,7 @@
         if (!ok) return;
       }
 
-      if (!ethers.isAddress(CONFIG.treasuryAddress) || CONFIG.treasuryAddress.toLowerCase().endsWith("dead")) {
+      if (!window.ethers.isAddress(CONFIG.treasuryAddress) || CONFIG.treasuryAddress.toLowerCase().endsWith("dead")) {
         txFeedback.textContent = "Set a valid treasuryAddress in index.html before accepting live $ZOKI payments.";
         return;
       }
@@ -569,9 +561,9 @@
         reviveZokiBtn.disabled = true;
         txFeedback.textContent = "Awaiting wallet signature...";
 
-        const token = new ethers.Contract(CONFIG.tokenAddress, ERC20_ABI, state.signer);
+        const token = new window.ethers.Contract(CONFIG.tokenAddress, ERC20_ABI, state.signer);
         const decimals = await token.decimals();
-        const rawAmount = ethers.parseUnits(CONFIG.reviveAmountTokens, decimals);
+        const rawAmount = window.ethers.parseUnits(CONFIG.reviveAmountTokens, decimals);
 
         const tx = await token.transfer(CONFIG.treasuryAddress, rawAmount);
         txFeedback.textContent = `Tx sent (${tx.hash.slice(0, 10)}...). Waiting for confirmation...`;
@@ -590,9 +582,6 @@
       }
     }
 
-    // =========================================================================
-    // ZOKI CHARACTER RENDERING (Black Cat, Gold Eyes, Pink Tongue, Gold ₿ Earring)
-    // =========================================================================
     function drawZoki() {
       const { x, y, w, h, onGround, runPhase } = zoki;
       const bob = onGround ? Math.sin(runPhase) * 2.2 : -1.5;
@@ -600,7 +589,6 @@
 
       ctx.save();
 
-      // Animated tail behind body
       const tailSwing = Math.sin(runPhase * 0.9) * 8;
       ctx.strokeStyle = "#16161c";
       ctx.lineWidth = 5;
@@ -610,13 +598,11 @@
       ctx.quadraticCurveTo(x - 10, baseY + h - 22 + tailSwing, x - 6, baseY + 12 + tailSwing);
       ctx.stroke();
 
-      // Paws
       const legOffset = onGround ? Math.sin(runPhase) * 5 : 4;
       ctx.fillStyle = "#121217";
       ctx.fillRect(x + 12 - legOffset * 0.5, baseY + h - 8, 8, 8);
       ctx.fillRect(x + w - 22 + legOffset * 0.5, baseY + h - 8, 8, 8);
 
-      // Torso / Head silhouette
       ctx.fillStyle = "#101015";
       ctx.strokeStyle = "#f5b700";
       ctx.lineWidth = 1.6;
@@ -625,7 +611,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // Left & Right pointed ears
       const drawEar = (tipX, baseL, baseR) => {
         ctx.fillStyle = "#101015";
         ctx.strokeStyle = "#f5b700";
@@ -638,7 +623,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Subtle inner ear tint
         ctx.fillStyle = "#5a3942";
         ctx.beginPath();
         ctx.moveTo(baseL + 3, baseY + 10);
@@ -651,7 +635,6 @@
       drawEar(x + 14, x + 9, x + 21);
       drawEar(x + w - 14, x + w - 21, x + w - 9);
 
-      // Gold Bitcoin earring on left ear
       const earringSwing = Math.sin(runPhase * 1.1) * 1.6;
       ctx.strokeStyle = "#ffd84d";
       ctx.lineWidth = 1.8;
@@ -663,7 +646,6 @@
       ctx.font = "bold 9px sans-serif";
       ctx.fillText("₿", x + 5 + earringSwing, baseY + 25);
 
-      // Glowing golden-yellow eyes + vertical pupils
       const eyeY = baseY + 19;
       const leftEyeX = x + 24;
       const rightEyeX = x + 37;
@@ -678,7 +660,6 @@
       ctx.fillRect(leftEyeX - 1.1, eyeY - 3, 2.2, 6);
       ctx.fillRect(rightEyeX - 1.1, eyeY - 3, 2.2, 6);
 
-      // Nose & pink tongue sticking out
       ctx.fillStyle = "#3a2b30";
       ctx.beginPath();
       ctx.moveTo(x + 29, baseY + 25);
@@ -692,14 +673,11 @@
       ctx.roundRect(x + 29, baseY + 27.5, 4.5, 5.5, 2);
       ctx.fill();
 
-      // White whiskers
       ctx.strokeStyle = "rgba(245, 245, 247, 0.85)";
       ctx.lineWidth = 1.1;
       ctx.beginPath();
-      // Left whiskers
       ctx.moveTo(x + 20, baseY + 25); ctx.lineTo(x + 7, baseY + 23);
       ctx.moveTo(x + 20, baseY + 28); ctx.lineTo(x + 7, baseY + 29);
-      // Right whiskers
       ctx.moveTo(x + 42, baseY + 25); ctx.lineTo(x + 55, baseY + 23);
       ctx.moveTo(x + 42, baseY + 28); ctx.lineTo(x + 55, baseY + 29);
       ctx.stroke();
@@ -707,9 +685,6 @@
       ctx.restore();
     }
 
-    // =========================================================================
-    // MAIN LOOP
-    // =========================================================================
     function render() {
       state.tick++;
 
@@ -722,11 +697,9 @@
         if (state.shake < 0.4) state.shake = 0;
       }
 
-      // Background
       ctx.fillStyle = "#060609";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Ambient stars
       for (const st of stars) {
         if (state.phase === "playing") {
           st.x -= st.v + state.speed * 0.12;
@@ -741,7 +714,6 @@
         ctx.fill();
       }
 
-      // Ground line & subtle grid
       ctx.strokeStyle = "#f5b700";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -758,7 +730,6 @@
         state.speed = Math.min(11, 5.4 + state.score * 0.0045);
         zoki.runPhase += 0.28;
 
-        // Gravity
         zoki.vy += zoki.gravity;
         zoki.y += zoki.vy;
         if (zoki.y >= GROUND_Y - zoki.h) {
@@ -767,7 +738,6 @@
           zoki.onGround = true;
         }
 
-        // Spawn traps
         if (state.tick % 84 === 0) {
           const h = 26 + Math.floor(Math.random() * 18);
           traps.push({
@@ -778,7 +748,6 @@
           });
         }
 
-        // Spawn ₿ energy orbs
         if (state.tick % 118 === 0) {
           orbsList.push({
             x: canvas.width + 24,
@@ -787,7 +756,6 @@
           });
         }
 
-        // Trap updates & collision
         for (let i = traps.length - 1; i >= 0; i--) {
           const t = traps[i];
           t.x -= state.speed;
@@ -805,7 +773,6 @@
           if (t.x + t.w < -30) traps.splice(i, 1);
         }
 
-        // Orb updates & pickup
         for (let i = orbsList.length - 1; i >= 0; i--) {
           const o = orbsList[i];
           o.x -= state.speed;
@@ -837,7 +804,6 @@
         syncHud();
       }
 
-      // Draw traps
       for (const t of traps) {
         ctx.fillStyle = "#ff4757";
         ctx.beginPath();
@@ -848,7 +814,6 @@
         ctx.fill();
       }
 
-      // Draw gold ₿ orbs
       for (const o of orbsList) {
         ctx.fillStyle = "rgba(255, 216, 77, 0.2)";
         ctx.beginPath();
@@ -869,7 +834,6 @@
 
       drawZoki();
 
-      // Floating popups
       for (let i = popups.length - 1; i >= 0; i--) {
         const p = popups[i];
         p.y += p.vy;
@@ -891,9 +855,6 @@
       requestAnimationFrame(render);
     }
 
-    // =========================================================================
-    // EVENT LISTENERS
-    // =========================================================================
     document.getElementById("playBtn").addEventListener("click", () => startRun(false));
     document.getElementById("newRunBtn").addEventListener("click", () => startRun(false));
     document.getElementById("testRefillBtn").addEventListener("click", () => {
