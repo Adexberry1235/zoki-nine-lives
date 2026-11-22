@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ZOKI: Nine Lives Run</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #050507;
+      --surface: #0e0e12;
+      --surface-2: #16161d;
+      --border: #262632;
+      --gold: #f5b700;
+      --gold-hi: #ffd84d;
+      --text: #f5f5f7;
+      --muted: #9898a6;
+      --danger: #ff4757;
+      --ok: #2ed573;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(245, 183, 0, 0.11), transparent 45%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 820px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .title-group h1 {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: var(--gold);
+    }
+
+    .title-group span {
+      font-size: 0.74rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .wallet-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wallet-pill {
+      font-size: 0.78rem;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-gold {
+      background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+      color: #09090b;
+    }
+
+    .btn-ghost {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 560px) {
+      .hud { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .card .label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+    }
+
+    .card .value {
+      margin-top: 2px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .power-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .power-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .power-track {
+      height: 10px;
+      background: #1a1a22;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .power-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #c98a00, var(--gold-hi));
+      transition: width 0.06s linear;
+    }
+
+    .stage {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #060609;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
+    }
+
+    .modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 5, 8, 0.88);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      gap: 12px;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 1.55rem;
+      color: var(--gold);
+      letter-spacing: 0.4px;
+    }
+
+    .modal p {
+      margin: 0;
+      max-width: 460px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: #d6d6e0;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .feedback {
+      min-height: 1.2em;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--gold-hi);
+      max-width: 520px;
+      word-break: break-word;
+    }
+
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    footer code {
+      color: #c8c8d4;
+      font-size: 0.72rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-group">
+        <h1>ZOKI: NINE LIVES</h1>
+        <span>NEVER BAD LUCK. ONLY EVER EARLY.</span>
+      </div>
+      <div class="wallet-controls">
+        <span id="walletPill" class="wallet-pill">Wallet: Off</span>
+        <button id="connectBtn" class="btn-gold">Connect</button>
+        <button id="soundBtn" class="btn-ghost" title="Toggle Sound">SFX: On</button>
+      </div>
+    </header>
+
+    <section class="hud">
+      <div class="card">
+        <div class="label">Score</div>
+        <div id="scoreText" class="value">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Life</div>
+        <div id="lifeText" class="value">1 / 9</div>
+      </div>
+      <div class="card">
+        <div class="label">₿ Orbs</div>
+        <div id="orbText" class="value">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Best</div>
+        <div id="bestText" class="value">0</div>
+      </div>
+    </section>
+
+    <section class="power-panel">
+      <div class="power-header">
+        <span>ZOKI POWER CORE</span>
+        <span id="powerPct">100%</span>
+      </div>
+      <div class="power-track">
+        <div id="powerFill" class="power-fill"></div>
+      </div>
+    </section>
+
+    <section class="stage">
+      <canvas id="game" width="820" height="380"></canvas>
+
+      <div id="startModal" class="modal">
+        <h2>NINE LIVES AWAIT</h2>
+        <p>Tap, click, or press <strong>Space / ↑</strong> to jump over traps and collect gold <strong>₿</strong> energy orbs. When your power core drains or you hit a trap, spend <strong>$ZOKI</strong> to revive.</p>
+        <div class="modal-actions">
+          <button id="playBtn" class="btn-gold">Play Free (Life 1)</button>
+        </div>
+      </div>
+
+      <div id="reviveModal" class="modal hidden">
+        <h2 id="reviveHeading">POWER DEPLETED</h2>
+        <p id="reviveCopy">Send <strong>500 $ZOKI</strong> to recharge Zoki's power core and enter <strong>Life 2 of 9</strong>.</p>
+        <div class="modal-actions">
+          <button id="reviveZokiBtn" class="btn-gold">Pay 500 $ZOKI to Revive</button>
+          <button id="testRefillBtn" class="btn-ghost">Test Refill</button>
+          <button id="newRunBtn" class="btn-ghost">New Run</button>
+        </div>
+        <div id="txFeedback" class="feedback"></div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Token: <code>0x54A557dc542676f56CE2B1B5807Cc76BEdca308a</code></span>
+      <span>Revive Fee: <strong>500 $ZOKI</strong></span>
+    </footer>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CONFIGURATION
+    // =========================================================================
+    const CONFIG = {
+      tokenAddress: "0x54A557dc542676f56CE2B1B5807Cc76BEdca308a",
+      // Replace with your receiving wallet address before going live with real payouts:
+      treasuryAddress: "0x000000000000000000000000000000000000dEaD",
+      reviveAmountTokens: "500",
+      maxLives: 9
+    };
+
+    const ERC20_ABI = [
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function decimals() view returns (uint8)"
+    ];
+
+    // =========================================================================
+    // AUDIO SYNTH (Lightweight Web Audio SFX, zero external files)
+    // =========================================================================
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function playTone(freq, duration, type = "sine", gainVal = 0.07) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (_) {}
+    }
+
+    // =========================================================================
+    // DOM & GAME STATE
+    // =========================================================================
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreText = document.getElementById("scoreText");
+    const lifeText = document.getElementById("lifeText");
+    const orbText = document.getElementById("orbText");
+    const bestText = document.getElementById("bestText");
+    const powerFill = document.getElementById("powerFill");
+    const powerPct = document.getElementById("powerPct");
+    const walletPill = document.getElementById("walletPill");
+    const startModal = document.getElementById("startModal");
+    const reviveModal = document.getElementById("reviveModal");
+    const reviveHeading = document.getElementById("reviveHeading");
+    const reviveCopy = document.getElementById("reviveCopy");
+    const txFeedback = document.getElementById("txFeedback");
+    const reviveZokiBtn = document.getElementById("reviveZokiBtn");
+
+    const GROUND_Y = 320;
+    let bestScore = Number(localStorage.getItem("zoki_nine_lives_best") || 0);
+    bestText.textContent = bestScore;
+
+    const state = {
+      phase: "start", // "start" | "playing" | "revive"
+      score: 0,
+      orbs: 0,
+      life: 1,
+      power: 100,
+      speed: 5.4,
+      tick: 0,
+      shake: 0,
+      provider: null,
+      signer: null,
+      account: null
+    };
+
+    const zoki = {
+      x: 110,
+      y: GROUND_Y - 46,
+      w: 54,
+      h: 46,
+      vy: 0,
+      gravity: 0.72,
+      jumpVel: -13.2,
+      onGround: true,
+      runPhase: 0
+    };
+
+    let traps = [];
+    let orbsList = [];
+    let popups = [];
+    let stars = Array.from({ length: 28 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * (GROUND_Y - 40),
+      r: 0.8 + Math.random() * 1.6,
+      v: 0.3 + Math.random() * 0.9
+    }));
+
+    function addPopup(text, x, y, color = "#ffd84d") {
+      popups.push({ text, x, y, vy: -1.1, alpha: 1, color });
+    }
+
+    function syncHud() {
+      const s = Math.floor(state.score);
+      scoreText.textContent = s;
+      lifeText.textContent = `${state.life} / ${CONFIG.maxLives}`;
+      orbText.textContent = state.orbs;
+      bestText.textContent = bestScore;
+      const p = Math.max(0, Math.min(100, state.power));
+      powerFill.style.width = `${p}%`;
+      powerPct.textContent = `${Math.ceil(p)}%`;
+    }
+
+    function jump() {
+      if (state.phase !== "playing") return;
+      if (zoki.onGround) {
+        zoki.vy = zoki.jumpVel;
+        zoki.onGround = false;
+        playTone(460, 0.11, "triangle", 0.06);
+      }
+    }
+
+    function startRun(preserveProgress = false) {
+      if (!preserveProgress) {
+        state.score = 0;
+        state.orbs = 0;
+        state.life = 1;
+      }
+      state.power = 100;
+      state.speed = 5.4;
+      state.shake = 0;
+      zoki.y = GROUND_Y - zoki.h;
+      zoki.vy = 0;
+      zoki.onGround = true;
+      traps = [];
+      orbsList = [];
+      popups = [];
+      txFeedback.textContent = "";
+      state.phase = "playing";
+      startModal.classList.add("hidden");
+      reviveModal.classList.add("hidden");
+      syncHud();
+    }
+
+    function openRevive(reason) {
+      if (state.phase === "revive") return;
+      state.phase = "revive";
+      state.shake = 10;
+      playTone(155, 0.25, "sawtooth", 0.07);
+
+      const currentScore = Math.floor(state.score);
+      if (currentScore > bestScore) {
+        bestScore = currentScore;
+        localStorage.setItem("zoki_nine_lives_best", bestScore);
+      }
+      syncHud();
+
+      reviveHeading.textContent = reason;
+      txFeedback.textContent = "";
+
+      if (state.life >= CONFIG.maxLives) {
+        reviveCopy.innerHTML = "All <strong>9 Lives</strong> have been used on this run. Start a fresh run to climb again.";
+        reviveZokiBtn.disabled = true;
+      } else {
+        reviveCopy.innerHTML = `Spend <strong>${CONFIG.reviveAmountTokens} $ZOKI</strong> to restore 100% power and enter <strong>Life ${state.life + 1} of ${CONFIG.maxLives}</strong>.`;
+        reviveZokiBtn.disabled = false;
+      }
+
+      reviveModal.classList.remove("hidden");
+    }
+
+    function completeRevive() {
+      if (state.life < CONFIG.maxLives) {
+        state.life += 1;
+      }
+      state.power = 100;
+      traps = traps.filter(t => t.x > zoki.x + 220 || t.x + t.w < zoki.x - 40);
+      state.phase = "playing";
+      reviveModal.classList.add("hidden");
+      addPopup(`LIFE ${state.life} ACTIVE!`, zoki.x + 10, zoki.y - 16, "#2ed573");
+      playTone(680, 0.16, "sine", 0.08);
+      syncHud();
+    }
+
+    // =========================================================================
+    // WALLET & $ZOKI PAYMENT
+    // =========================================================================
+    async function connectWallet() {
+      if (!window.ethereum) {
+        txFeedback.textContent = "No injected wallet found. Open in MetaMask/Rabby or use Test Refill.";
+        return false;
+      }
+      try {
+        state.provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await state.provider.send("eth_requestAccounts", []);
+        state.signer = await state.provider.getSigner();
+        state.account = accounts[0];
+        walletPill.textContent = `${state.account.slice(0, 6)}...${state.account.slice(-4)}`;
+        return true;
+      } catch (err) {
+        txFeedback.textContent = err?.shortMessage || "Wallet connection declined.";
+        return false;
+      }
+    }
+
+    async function payZokiToRevive() {
+      if (state.life >= CONFIG.maxLives) return;
+
+      if (!state.signer) {
+        const ok = await connectWallet();
+        if (!ok) return;
+      }
+
+      if (!ethers.isAddress(CONFIG.treasuryAddress) || CONFIG.treasuryAddress.toLowerCase().endsWith("dead")) {
+        txFeedback.textContent = "Set a valid treasuryAddress in index.html before accepting live $ZOKI payments.";
+        return;
+      }
+
+      try {
+        reviveZokiBtn.disabled = true;
+        txFeedback.textContent = "Awaiting wallet signature...";
+
+        const token = new ethers.Contract(CONFIG.tokenAddress, ERC20_ABI, state.signer);
+        const decimals = await token.decimals();
+        const rawAmount = ethers.parseUnits(CONFIG.reviveAmountTokens, decimals);
+
+        const tx = await token.transfer(CONFIG.treasuryAddress, rawAmount);
+        txFeedback.textContent = `Tx sent (${tx.hash.slice(0, 10)}...). Waiting for confirmation...`;
+
+        const receipt = await tx.wait(1);
+        if (receipt && receipt.status === 1) {
+          txFeedback.textContent = `Confirmed! Entering Life ${state.life + 1}...`;
+          setTimeout(completeRevive, 350);
+        } else {
+          txFeedback.textContent = "Transaction failed on-chain.";
+          reviveZokiBtn.disabled = false;
+        }
+      } catch (err) {
+        txFeedback.textContent = err?.shortMessage || "Transaction cancelled or reverted.";
+        reviveZokiBtn.disabled = false;
+      }
+    }
+
+    // =========================================================================
+    // ZOKI CHARACTER RENDERING (Black Cat, Gold Eyes, Pink Tongue, Gold ₿ Earring)
+    // =========================================================================
+    function drawZoki() {
+      const { x, y, w, h, onGround, runPhase } = zoki;
+      const bob = onGround ? Math.sin(runPhase) * 2.2 : -1.5;
+      const baseY = y + bob;
+
+      ctx.save();
+
+      // Animated tail behind body
+      const tailSwing = Math.sin(runPhase * 0.9) * 8;
+      ctx.strokeStyle = "#16161c";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x + 8, baseY + h - 10);
+      ctx.quadraticCurveTo(x - 10, baseY + h - 22 + tailSwing, x - 6, baseY + 12 + tailSwing);
+      ctx.stroke();
+
+      // Paws
+      const legOffset = onGround ? Math.sin(runPhase) * 5 : 4;
+      ctx.fillStyle = "#121217";
+      ctx.fillRect(x + 12 - legOffset * 0.5, baseY + h - 8, 8, 8);
+      ctx.fillRect(x + w - 22 + legOffset * 0.5, baseY + h - 8, 8, 8);
+
+      // Torso / Head silhouette
+      ctx.fillStyle = "#101015";
+      ctx.strokeStyle = "#f5b700";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.roundRect(x + 6, baseY + 6, w - 10, h - 12, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      // Left & Right pointed ears
+      const drawEar = (tipX, baseL, baseR) => {
+        ctx.fillStyle = "#101015";
+        ctx.strokeStyle = "#f5b700";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(baseL, baseY + 11);
+        ctx.lineTo(tipX, baseY - 5);
+        ctx.lineTo(baseR, baseY + 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Subtle inner ear tint
+        ctx.fillStyle = "#5a3942";
+        ctx.beginPath();
+        ctx.moveTo(baseL + 3, baseY + 10);
+        ctx.lineTo(tipX, baseY);
+        ctx.lineTo(baseR - 3, baseY + 9);
+        ctx.closePath();
+        ctx.fill();
+      };
+
+      drawEar(x + 14, x + 9, x + 21);
+      drawEar(x + w - 14, x + w - 21, x + w - 9);
+
+      // Gold Bitcoin earring on left ear
+      const earringSwing = Math.sin(runPhase * 1.1) * 1.6;
+      ctx.strokeStyle = "#ffd84d";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(x + 9 + earringSwing * 0.4, baseY + 14, 4.2, 0.2, Math.PI * 1.8);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffd84d";
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillText("₿", x + 5 + earringSwing, baseY + 25);
+
+      // Glowing golden-yellow eyes + vertical pupils
+      const eyeY = baseY + 19;
+      const leftEyeX = x + 24;
+      const rightEyeX = x + 37;
+
+      ctx.fillStyle = "#ffd84d";
+      ctx.beginPath();
+      ctx.ellipse(leftEyeX, eyeY, 4.6, 3.6, -0.1, 0, Math.PI * 2);
+      ctx.ellipse(rightEyeX, eyeY, 4.6, 3.6, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#08080a";
+      ctx.fillRect(leftEyeX - 1.1, eyeY - 3, 2.2, 6);
+      ctx.fillRect(rightEyeX - 1.1, eyeY - 3, 2.2, 6);
+
+      // Nose & pink tongue sticking out
+      ctx.fillStyle = "#3a2b30";
+      ctx.beginPath();
+      ctx.moveTo(x + 29, baseY + 25);
+      ctx.lineTo(x + 33, baseY + 25);
+      ctx.lineTo(x + 31, baseY + 27.5);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#ff7aa2";
+      ctx.beginPath();
+      ctx.roundRect(x + 29, baseY + 27.5, 4.5, 5.5, 2);
+      ctx.fill();
+
+      // White whiskers
+      ctx.strokeStyle = "rgba(245, 245, 247, 0.85)";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      // Left whiskers
+      ctx.moveTo(x + 20, baseY + 25); ctx.lineTo(x + 7, baseY + 23);
+      ctx.moveTo(x + 20, baseY + 28); ctx.lineTo(x + 7, baseY + 29);
+      // Right whiskers
+      ctx.moveTo(x + 42, baseY + 25); ctx.lineTo(x + 55, baseY + 23);
+      ctx.moveTo(x + 42, baseY + 28); ctx.lineTo(x + 55, baseY + 29);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // MAIN LOOP
+    // =========================================================================
+    function render() {
+      state.tick++;
+
+      ctx.save();
+      if (state.shake > 0) {
+        const dx = (Math.random() - 0.5) * state.shake;
+        const dy = (Math.random() - 0.5) * state.shake;
+        ctx.translate(dx, dy);
+        state.shake *= 0.85;
+        if (state.shake < 0.4) state.shake = 0;
+      }
+
+      // Background
+      ctx.fillStyle = "#060609";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Ambient stars
+      for (const st of stars) {
+        if (state.phase === "playing") {
+          st.x -= st.v + state.speed * 0.12;
+          if (st.x < 0) {
+            st.x = canvas.width;
+            st.y = Math.random() * (GROUND_Y - 40);
+          }
+        }
+        ctx.fillStyle = "rgba(255, 216, 77, 0.35)";
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Ground line & subtle grid
+      ctx.strokeStyle = "#f5b700";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, GROUND_Y);
+      ctx.lineTo(canvas.width, GROUND_Y);
+      ctx.stroke();
+
+      ctx.fillStyle = "#0b0b10";
+      ctx.fillRect(0, GROUND_Y + 2, canvas.width, canvas.height - GROUND_Y);
+
+      if (state.phase === "playing") {
+        state.score += 0.14;
+        state.power -= 0.06;
+        state.speed = Math.min(11, 5.4 + state.score * 0.0045);
+        zoki.runPhase += 0.28;
+
+        // Gravity
+        zoki.vy += zoki.gravity;
+        zoki.y += zoki.vy;
+        if (zoki.y >= GROUND_Y - zoki.h) {
+          zoki.y = GROUND_Y - zoki.h;
+          zoki.vy = 0;
+          zoki.onGround = true;
+        }
+
+        // Spawn traps
+        if (state.tick % 84 === 0) {
+          const h = 26 + Math.floor(Math.random() * 18);
+          traps.push({
+            x: canvas.width + 24,
+            y: GROUND_Y - h,
+            w: 22,
+            h
+          });
+        }
+
+        // Spawn ₿ energy orbs
+        if (state.tick % 118 === 0) {
+          orbsList.push({
+            x: canvas.width + 24,
+            y: GROUND_Y - 72 - Math.floor(Math.random() * 60),
+            r: 12
+          });
+        }
+
+        // Trap updates & collision
+        for (let i = traps.length - 1; i >= 0; i--) {
+          const t = traps[i];
+          t.x -= state.speed;
+
+          const collided =
+            zoki.x + 8 < t.x + t.w &&
+            zoki.x + zoki.w - 8 > t.x &&
+            zoki.y + 6 < t.y + t.h &&
+            zoki.y + zoki.h - 4 > t.y;
+
+          if (collided) {
+            openRevive("TRAP IMPACT!");
+            break;
+          }
+          if (t.x + t.w < -30) traps.splice(i, 1);
+        }
+
+        // Orb updates & pickup
+        for (let i = orbsList.length - 1; i >= 0; i--) {
+          const o = orbsList[i];
+          o.x -= state.speed;
+
+          const cx = zoki.x + zoki.w * 0.5;
+          const cy = zoki.y + zoki.h * 0.5;
+          if (Math.hypot(cx - o.x, cy - o.y) < o.r + 22) {
+            state.orbs += 1;
+            state.score += 20;
+            state.power = Math.min(100, state.power + 15);
+            addPopup("+15% PWR", o.x, o.y - 8, "#ffd84d");
+            playTone(760, 0.09, "sine", 0.06);
+            orbsList.splice(i, 1);
+            continue;
+          }
+          if (o.x < -30) orbsList.splice(i, 1);
+        }
+
+        if (state.power <= 0 && state.phase === "playing") {
+          state.power = 0;
+          openRevive("POWER DEPLETED!");
+        }
+
+        const rounded = Math.floor(state.score);
+        if (rounded > bestScore) {
+          bestScore = rounded;
+          localStorage.setItem("zoki_nine_lives_best", bestScore);
+        }
+        syncHud();
+      }
+
+      // Draw traps
+      for (const t of traps) {
+        ctx.fillStyle = "#ff4757";
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y + t.h);
+        ctx.lineTo(t.x + t.w * 0.5, t.y);
+        ctx.lineTo(t.x + t.w, t.y + t.h);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Draw gold ₿ orbs
+      for (const o of orbsList) {
+        ctx.fillStyle = "rgba(255, 216, 77, 0.2)";
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r + 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffd84d";
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#09090b";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("₿", o.x, o.y + 0.5);
+      }
+
+      drawZoki();
+
+      // Floating popups
+      for (let i = popups.length - 1; i >= 0; i--) {
+        const p = popups[i];
+        p.y += p.vy;
+        p.alpha -= 0.022;
+        if (p.alpha <= 0) {
+          popups.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(p.text, p.x, p.y);
+        ctx.restore();
+      }
+
+      ctx.restore();
+      requestAnimationFrame(render);
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS
+    // =========================================================================
+    document.getElementById("playBtn").addEventListener("click", () => startRun(false));
+    document.getElementById("newRunBtn").addEventListener("click", () => startRun(false));
+    document.getElementById("testRefillBtn").addEventListener("click", () => {
+      if (state.life >= CONFIG.maxLives) {
+        txFeedback.textContent = "All 9 lives used. Click New Run.";
+        return;
+      }
+      completeRevive();
+    });
+    reviveZokiBtn.addEventListener("click", payZokiToRevive);
+    document.getElementById("connectBtn").addEventListener("click", connectWallet);
+
+    const soundBtn = document.getElementById("soundBtn");
+    soundBtn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? "SFX: On" : "SFX: Off";
+    });
+
+    canvas.addEventListener("pointerdown", jump);
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        jump();
+      }
+    });
+
+    syncHud();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
